@@ -43,6 +43,11 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
+app.get("/merge", (req, res) => {
+    mergeVedio();
+});
+
+
 app.post("/convert", (req, res) => {
 	document = req.query.document;
 
@@ -132,4 +137,22 @@ function timeConversion(time){
 
 function Error(error){
 	console.log(error);
+}
+
+function mergeVedio(){
+	console.log("in merge video");
+	var mergedVideo = ffmpeg();
+	var videoNames = ['./tmp/output/0.mp4', './tmp/output/1.mp4'];
+
+	videoNames.forEach(function(videoName){
+		mergedVideo = mergedVideo.addInput(videoName);
+	});
+
+	mergedVideo.mergeToFile('./public/output.mp4', './tmp/tempDir')
+	.on('error', function(err) {
+		console.log('Error ' + err.message);
+	})
+	.on('end', function() {
+		console.log('Finished!');
+	});
 }
