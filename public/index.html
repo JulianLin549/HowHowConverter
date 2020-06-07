@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HowGer Converter</title>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    />
+  </head>
+
+<body>
+    <div class="container">
+        <br /><br />
+        <h1 style="text-align: center;">HowGer Converter</h1>
+
+        <form action="/convert" method="post" enctype="application/x-www-form-urlencoded">
+            <!-- action =  當提交表單時，表單數據會提交道/convert頁面
+                 enctype = 規定在發送到伺服器前如何對表單進行編碼##Never use text/plain
+                use multipart/form-data when your form includes any <input type="file"> elements
+                otherwise you can use multipart/form-data or application/x-www-form-urlencoded 
+                but application/x-www-form-urlencoded will be more efficient-->
+                
+            <div class="form-group">
+            <label for="input">Input what you want to transform.</label>  
+            <br /> <br /> 
+            <textarea style="width:300px;height:100px;" type="text" name="input" id="input" cols="30" rows="5"></textarea>
+            
+            </div>
+
+            <br />
+
+            <div class="form-group">
+                <input  class="btn btn-danger btn-block" type='submit' value='Submit'> 
+            </div>
+        </form>
+
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>

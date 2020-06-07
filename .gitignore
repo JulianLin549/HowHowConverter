@@ -1,0 +1,6 @@
+# ignore npm packages
+node_modules/
+tmp/
+trash/
+public/HowFun.mp4
+*.mp4
