@@ -108,10 +108,10 @@ function convert(timeArray){
 			let endTime = timeConversion(element.endTime);
 			let duration = (element.endTime-element.startTime).toFixed(2);
 			console.log(startTime, endTime,duration);
-			ffmpeg('public/HowFun.mp4')
+			ffmpeg('tmp/HowFun.mp4')
 			.setStartTime(startTime)
 			.setDuration(duration)
-			.output('tmp/'+ queue + '.mp4')
+			.output('tmp/output/'+ queue + '.mp4')
 			.on('end', function(err) {   
 			if(!err)
 			{
