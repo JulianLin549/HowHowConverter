@@ -60,7 +60,14 @@ app.post("/convert", (req, res) => {
 	});
 
 	//console.log(time);
-	convert(time);
+	
+	let queue = 0;
+	time.forEach((element) => {
+		//console.log(element);
+		convert(element,queue);
+		queue++;
+	});
+	
 
 });
 
@@ -91,45 +98,29 @@ function inputPinYintoTime (pinyin){
 
 }
 
-function convert(timeArray){
-	try {
-		timeArray.forEach((element) => {
-				
-
-
-
-
-
-
-
-			//用promise??
-			let queue = 0;
-			let startTime = timeConversion(element.startTime);
-			let endTime = timeConversion(element.endTime);
-			let duration = (element.endTime-element.startTime).toFixed(2);
-			console.log(startTime, endTime,duration);
-			ffmpeg('tmp/HowFun.mp4')
-			.setStartTime(startTime)
-			.setDuration(duration)
-			.output('tmp/output/'+ queue + '.mp4')
-			.on('end', function(err) {   
-			if(!err)
-			{
-				console.log('successfully converted');
-			}                 
-			})
-			.on('error', function(err){
-			console.log('conversion error: ', +err);
-			}).run(); 
-			queue++;
-		});
-	}
-	catch (e) {
-		Error("輸入無效字元");
-	}
+function convert(element,queue){
 	
+	let startTime = timeConversion(element.startTime);
+	let endTime = timeConversion(element.endTime);
+	let duration = (element.endTime-element.startTime).toFixed(2);
+	console.log(startTime, endTime,duration);
+	ffmpeg('tmp/HowFun.mp4')
+	.setStartTime(startTime)
+	.setDuration(duration)
+	.output('tmp/output/'+ queue + '.mp4')
+	.on('end', function(err) {   
+	if(!err)
+	{
+		console.log('successfully converted');
+		
+	}                 
+	})
+	.on('error', function(err){
+	console.log('conversion error: ', + err);
+	}).run()
 
 }
+
 
 function timeConversion(time){
 	let mSec = Math.round((time * 100)%100);
