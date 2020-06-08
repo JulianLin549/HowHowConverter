@@ -104,29 +104,6 @@ function inputPinYintoTime (pinyin){
 
 }
 
-function convert(element,queue){
-	return new Promise(function(resolve, reject) {
-		let startTime = timeConversion(element.startTime);
-		let endTime = timeConversion(element.endTime);
-		let duration = (element.endTime-element.startTime).toFixed(2);
-		console.log(startTime, endTime,duration);
-		ffmpeg('tmp/HowFun.mp4')
-		.setStartTime(startTime)
-		.setDuration(duration)
-		//.output('tmp/source/'+ queue + '.mp4')
-		.on('error', function(err){
-		console.log('conversion error: ', + err);
-		})
-		.on('end', function(err) {   
-			if(!err){
-					console.log('successfully converted');
-					resolve("yaya");
-			}                 
-		}).save('tmp/source/'+ queue + '.mp4');
-		//.run();
-	});
-}
-
 
 function timeConversion(time){
 	let mSec = Math.round((time * 100)%100);
@@ -156,6 +133,32 @@ function mergeVedio(arr){
 		console.log('Finished!');
 	});
 }
+
+
+function convert(element,queue){
+		
+	new Promise(function(resolve, reject) {
+	   let startTime = timeConversion(element.startTime);
+	   let endTime = timeConversion(element.endTime);
+	   let duration = (element.endTime-element.startTime).toFixed(2);
+	   console.log(startTime, endTime,duration);
+	   ffmpeg('tmp/HowFun.mp4')
+	   .setStartTime(startTime)
+	   .setDuration(duration)
+	   //.output('tmp/source/'+ queue + '.mp4')
+	   .on('error', function(err){
+	   console.log('conversion error: ', + err);
+	   })
+	   .on('end', function(err) {   
+		   if(!err){
+				   console.log('successfully converted');
+				   resolve("yaya");
+		   }                 
+	   }).save('tmp/source/'+ queue + '.mp4');
+	   //.run();
+   });
+}
+
 
 async function convertAllFile(array,done){
 	return new Promise((resolve, reject) => {
