@@ -43,11 +43,50 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
-app.get("/merge", (req, res) => {
-	console.log(loopFile());
+
+app.get('/merge', (req, res) => {
+	//console.log(loopFile());
+	function mergeVedio(arr){
+		console.log("in merge video");
+		var mergedVideo = ffmpeg();
+	
+		//var videoNames = ['./tmp/source/0.mp4', './tmp/source/1.mp4'];
+		var videoNames = arr;
+	
+		videoNames.forEach(function(videoName){
+			mergedVideo = mergedVideo.addInput(videoName);
+		});
+	
+		mergedVideo.mergeToFile('./public/output.mp4', './tmp')
+		.on('error', function(err) {
+			console.log('Error ' + err.message);
+		
+		}).on("end", function (stdout, stderr) {
+			console.log("Finished");
+			res.redirect('/download');
+			
+		});
+	}
+
 	mergeVedio(loopFile());
 });
 
+app.get('/HowHowSpeaks', function(req, res){
+    res.sendFile(__dirname + '/public/howhowSpeaks.html');
+});
+
+
+app.get('/download', function(req, res){
+	
+	var file = __dirname + '/public/output.mp4';
+	if(file){
+		res.sendFile(file);
+		
+	}
+	else{
+		alert("download failed");
+	}
+});
 
 app.post("/convert", (req, res) => {
 	//document = req.query.document;
@@ -74,9 +113,51 @@ app.post("/convert", (req, res) => {
 	//merge output file */
 
 	convertAllFile(split);
-	mergeVedio(loopFile());
+	//mergeVedio(loopFile());
 });
 
+app.get('/HowhowCanSpeak', function(req, res) {
+	res.sendFile(path.join(__dirname + '/public/vedioOutput.html'))
+});
+
+app.get('/HowhowCanSpeak/video', function(req, res) {
+	const path = __dirname + '/public/output.mp4';
+	const stat = fs.statSync(path);
+	const fileSize = stat.size;
+	const range = req.headers.range;
+  
+	if (range) {
+	  const parts = range.replace(/bytes=/, "").split("-")
+	  const start = parseInt(parts[0], 10)
+	  const end = parts[1]
+		? parseInt(parts[1], 10)
+		: fileSize-1
+  
+	  if(start >= fileSize) {
+		res.status(416).send('Requested range not satisfiable\n'+start+' >= '+fileSize);
+		return
+	  }
+	  
+	  const chunksize = (end-start)+1
+	  const file = fs.createReadStream(path, {start, end})
+	  const head = {
+		'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+		'Accept-Ranges': 'bytes',
+		'Content-Length': chunksize,
+		'Content-Type': 'video/mp4',
+	  }
+  
+	  res.writeHead(206, head)
+	  file.pipe(res)
+	} else {
+	  const head = {
+		'Content-Length': fileSize,
+		'Content-Type': 'video/mp4',
+	  }
+	  res.writeHead(200, head)
+	  fs.createReadStream(path).pipe(res)
+	}
+}); 
 
 
 app.listen(5000,() => {
@@ -113,8 +194,8 @@ function timeConversion(time){
 	return(result);
 }
 
-
-function mergeVedio(arr){
+/* 
+async function mergeVedio(arr){
 	console.log("in merge video");
 	var mergedVideo = ffmpeg();
 
@@ -128,12 +209,23 @@ function mergeVedio(arr){
 	mergedVideo.mergeToFile('./public/output.mp4', './tmp')
 	.on('error', function(err) {
 		console.log('Error ' + err.message);
-	})
-	.on('end', function() {
-		console.log('Finished!');
+	
+	}).on("end", function () {
+		console.log("Finished");
+  
+		//download file when finished Set disposition and send it.
+		res.download(__dirname + '/public/output.mp4', function (err) {
+		  
+			if (err) throw err;
+			//delete file from tmp
+			 fs.unlink(__dirname + fileName, function (err) {
+				if (err) throw err;
+				console.log("File deleted");
+			}); 
+		}); 
 	});
 }
-
+ */
 
 function convert(element,queue){
 		
@@ -205,3 +297,5 @@ function loopFile(){
 	//console.log(files);
 	return files;
 }
+
+
