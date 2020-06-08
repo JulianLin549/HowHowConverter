@@ -15,14 +15,14 @@ function timeConversion(time){
 	let result = date.toISOString().substr(11, 8) + "." + mSec;
 	return(result);
 }
-
+// 
 async function chinsesToPinyin(inputText){
     return(pinyin(inputText,{
 		style: pinyin.STYLE_TONE2,
 	}));
 }
 
-// inputPinYintoTime;
+// 
 //return 
 async function inputPinYintoTime (pinyin){
 
@@ -46,12 +46,12 @@ async function inputPinYintoTime (pinyin){
 
 }
 
-async function convertToVedio (element,queue){
+function convertToVedio (element,queue){
     let startTime = timeConversion(element.startTime);
     let endTime = timeConversion(element.endTime);
     let duration = (element.endTime-element.startTime).toFixed(2);
     console.log(startTime, endTime,duration,queue);
-    await ffmpeg('tmp/HowFun.mp4')
+     ffmpeg('tmp/HowFun.mp4')
 	   .setStartTime(startTime)
 	   .setDuration(duration)
 	   //.output('tmp/source/'+ queue + '.mp4')
@@ -66,26 +66,38 @@ async function convertToVedio (element,queue){
 	   //.run();
 }
 
-let promises = [];
 let timePoints = [];
-chinsesToPinyin(text).then(function(array) {
-    //console.log(array);//[ [ 'chi1' ], [ 'bao3' ], [ 'mei2' ] ]
-    for(let i =0;i<array.length;i++){
-        let time = inputPinYintoTime(array[i]); 
-        //console.log(time);//Promise { { startTime: '1156.25', endTime: '1156.94' } }
-        promises.push(time);
-        time.then(function(obj) {
 
-            timePoints.push (obj);
-            convertToVedio(obj,i);
-            
-        });
-    }
-}).then(function(array){
-    console.log("is it OK?");
-    //console.log(promises);//{Promise{(...),Promise{(...),Promise{(...)}}
-    //console.log(timePoints);//[{(...)}, {(...)}, {(...)}]
-})
+async function logging(){
+    console.log("finished");
+} 
+async function coversionOntheWay(){
+    //把中文拼音變成羅馬拼音
+    chinsesToPinyin(text).then(function(array) {
+        //console.log(array);//[ [ 'chi1' ], [ 'bao3' ], [ 'mei2' ] ]
+        
+        //text有幾個字就有幾個for迴圈，先將拼音對照時間表，換成含有時間的promise，再把時間拿出來轉乘要切的影片。
+        for(let i =0;i<array.length;i++){
+            let time = inputPinYintoTime(array[i]); 
+            //console.log(time);//Promise { { startTime: '1156.25', endTime: '1156.94' } }
+            //先將拼音對照時間表，換成含有時間的promi
+            time.then(function(obj) {
+                //再把時間拿出來轉乘要切的影片。
+                //這段花很多時間。
+                convertToVedio(obj,i);
+                
+            });
+        };
+    }).then(()=>{
+        console.log("fuckyou");
+    });
+}
 
+async function main(){
+    //不是應該第一個await做完再做第二個await嗎?
+    await coversionOntheWay();
+    await logging(); 
 
+};
 
+main();
