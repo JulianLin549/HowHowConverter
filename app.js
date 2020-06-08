@@ -1,13 +1,9 @@
+const asyncPool = require('tiny-async-pool');
 const express = require("express");
-
 const ffmpeg = require("fluent-ffmpeg");
-
 const bodyParser = require("body-parser");
-
 const fileUpload = require("express-fileupload");
-
 const pinyin = require("pinyin");
-
 const app = express();
 
 //Node.js File system
@@ -44,13 +40,12 @@ app.get("/", (req, res) => {
 });
 
 app.get("/merge", (req, res) => {
-	console.log(loopFile());
-	mergeVedio(loopFile());
+    mergeVedio();
 });
 
 
 app.post("/convert", (req, res) => {
-	//document = req.query.document;
+	document = req.query.document;
 
 	let input = req.body.input;
 
@@ -72,9 +67,10 @@ app.post("/convert", (req, res) => {
 
 	console.log("convert down")
 	//merge output file */
-
-	convertAllFile(split);
-	mergeVedio(loopFile());
+    async function main() {
+        await asyncPool(convertAllFile(split));
+    };
+    main();
 });
 
 
@@ -104,8 +100,7 @@ function inputPinYintoTime (pinyin){
 
 }
 
-function convert(element,queue){
-	return new Promise(function(resolve, reject) {
+let convert = (element,queue) => new Promise((resolve, reject) => {
 		let startTime = timeConversion(element.startTime);
 		let endTime = timeConversion(element.endTime);
 		let duration = (element.endTime-element.startTime).toFixed(2);
@@ -113,19 +108,20 @@ function convert(element,queue){
 		ffmpeg('tmp/HowFun.mp4')
 		.setStartTime(startTime)
 		.setDuration(duration)
-		//.output('tmp/source/'+ queue + '.mp4')
+		.output('tmp/source/'+ queue + '.mp4')
 		.on('error', function(err){
-		console.log('conversion error: ', + err);
+            console.log('conversion error: ', + err);
+            reject(ree);
 		})
 		.on('end', function(err) {   
 			if(!err){
-					console.log('successfully converted');
-					resolve("yaya");
+				console.log('successfully converted');
+				resolve();
 			}                 
-		}).save('tmp/source/'+ queue + '.mp4');
-		//.run();
-	});
-}
+		})
+		.save();
+});
+
 
 
 function timeConversion(time){
@@ -137,12 +133,11 @@ function timeConversion(time){
 }
 
 
-function mergeVedio(arr){
+function mergeVedio(){
 	console.log("in merge video");
 	var mergedVideo = ffmpeg();
 
-	//var videoNames = ['./tmp/source/0.mp4', './tmp/source/1.mp4'];
-	var videoNames = arr;
+	var videoNames = ['./tmp/source/0.mp4', './tmp/source/1.mp4'];
 
 	videoNames.forEach(function(videoName){
 		mergedVideo = mergedVideo.addInput(videoName);
@@ -157,48 +152,24 @@ function mergeVedio(arr){
 	});
 }
 
-async function convertAllFile(array,done){
-	return new Promise((resolve, reject) => {
-		//queue determine output sequence and file name
-		//convert pinyin to time stemp and 
-		//convert time stemp to actual vedio footage 
-		let queue = 0;
-		function convertEachFile(array){
-			return new Promise((resolve, reject) => {
-				array.forEach((element) => {
-					let time = inputPinYintoTime(element);
-					convert(time,queue);
-					queue++;
-				});
-				resolve('vedio'+ queue + 'complete');
-			})
-		};
+async function convertAllFile(array,){
+	
+	//queue determine output sequence and file name
+	//convert pinyin to time stemp and 
+	//convert time stemp to actual vedio footage 
+	let queue = 0;
+	function convertEachFile(array){
+			array.forEach((element) => {
+				let time = inputPinYintoTime(element);
+				convert(time,queue);
+				queue++;
+	        });
 
-		convertEachFile(array).then();
-		
-		if (typeof done ==='function'){
-			done();
-			
-		}
-		return resolve();
-	});
-
-} 
-
+    } 
+    await convertEachFile(array);
+}
 
 function Error(error){
 	console.log(error);
 }
 
-
-
-function loopFile(){
-	let files = [];
-	const testFolder = './tmp/source/';
-	fs.readdirSync(testFolder).forEach(file => {
-	//console.log(file);
-	files.push('./tmp/source/' + file);
-	});
-	//console.log(files);
-	return files;
-}
