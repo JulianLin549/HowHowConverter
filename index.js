@@ -14,6 +14,8 @@ const app = express();
 const fs = require("fs");
 const path = require('path');
 
+let fileCount = 0;
+
 //const parse = require('csv-parse')
 
 //set ffmpeg path
@@ -23,9 +25,7 @@ ffmpeg.setFfprobePath("C:/ffmpeg/bin/ffprobe.exe");
 
 ffmpeg.setFlvtoolPath("C:/flvtool");
 
-//console.log(ffmpeg);
-
-//set there the tmp file should go
+//set where the tmp file should go
 app.use(
     fileUpload({
      	useTempFiles: true,
@@ -43,42 +43,16 @@ app.get("/", (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
 
-
-app.get('/merge', (req, res) => {
-	//console.log(loopFile());
-	function mergeVedio(arr){
-		console.log("in merge video");
-		var mergedVideo = ffmpeg();
+app.get('/delete', function(req, res){
+	deleteOntheWay();
 	
-		//var videoNames = ['./tmp/source/0.mp4', './tmp/source/1.mp4'];
-		var videoNames = arr;
-	
-		videoNames.forEach(function(videoName){
-			mergedVideo = mergedVideo.addInput(videoName);
-		});
-	
-		mergedVideo.mergeToFile('./public/output.mp4', './tmp')
-		.on('error', function(err) {
-			console.log('Error ' + err.message);
-		
-		}).on("end", function (stdout, stderr) {
-			console.log("Finished");
-			res.redirect('/download');
-			
-		});
-	}
-
-	mergeVedio(loopFile());
 });
 
-app.get('/HowHowSpeaks', function(req, res){
-    res.sendFile(__dirname + '/public/howhowSpeaks.html');
-});
 
 
 app.get('/download', function(req, res){
 	
-	var file = __dirname + '/public/output.mp4';
+	var file = __dirname + '/public/videoOutput/output.mp4';
 	if(file){
 		res.sendFile(file);
 		
@@ -93,27 +67,20 @@ app.post("/convert", (req, res) => {
 
 	let input = req.body.input;
 
-	let split = pinyin(input,{
-		style: pinyin.STYLE_TONE2,
-	});
-	console.log(split);//split contain [ [ 'wan3' ], [ 'can1' ] ]
-	console.log(split.length); 
+	main(input);
+	async function main(text){
+		let pinyinArray = chinsesToPinyin(text);
+		fileCount = pinyinArray.length;
+		await coversionOntheWay(pinyinArray);
+		await console.log("--------------");
+		await mergeOntheWay();
+		await console.log("--------------");
+		//await deleteOntheWay();
+		await res.redirect('/HowhowCanSpeak');
+	};
 
-	/* //queue determine output sequence and file name
-	//convert pinyin to time stemp and 
-	//convert time stemp to actual vedio footage 
-	let queue = 0;
-	split.forEach((element) => {
-		let time = inputPinYintoTime(element);
-		convert(time,queue);
-		queue++;
-	});
+	
 
-	console.log("convert down")
-	//merge output file */
-
-	convertAllFile(split);
-	//mergeVedio(loopFile());
 });
 
 app.get('/HowhowCanSpeak', function(req, res) {
@@ -121,7 +88,7 @@ app.get('/HowhowCanSpeak', function(req, res) {
 });
 
 app.get('/HowhowCanSpeak/video', function(req, res) {
-	const path = __dirname + '/public/output.mp4';
+	const path = __dirname + '/public/videoOutput/output.mp4';
 	const stat = fs.statSync(path);
 	const fileSize = stat.size;
 	const range = req.headers.range;
@@ -168,23 +135,18 @@ app.listen(5000,() => {
 function inputPinYintoTime (pinyin){
 
     const howhowParser = require('./json/howhow-parser.json'); //with path
-   
-	
 		try {
 			startTime = howhowParser[pinyin].startTime;
 			endTime = howhowParser[pinyin].endTime;
-			console.log(pinyin + ": startTime: " + howhowParser[pinyin].startTime+ " endTime: "+ howhowParser[pinyin].endTime);
-			return {startTime,endTime};
+			//console.log(pinyin + ": startTime: " + howhowParser[pinyin].startTime+ " endTime: "+ howhowParser[pinyin].endTime);
+            return {startTime,endTime};
+            resolve({startTime,endTime});
 		}
 		catch (e) {
-			Error("無法讀取\""+ pinyin + "\"");
-			//console.log("無法讀取\""+ pinyin + "\"");
+			throw Error("無法讀取\""+ pinyin + "\"");
+            //console.log("無法讀取\""+ pinyin + "\"");  
 		}
-	
-	
-
 }
-
 
 function timeConversion(time){
 	let mSec = Math.round((time * 100)%100);
@@ -193,109 +155,126 @@ function timeConversion(time){
 	let result = date.toISOString().substr(11, 8) + "." + mSec;
 	return(result);
 }
-
-/* 
-async function mergeVedio(arr){
-	console.log("in merge video");
-	var mergedVideo = ffmpeg();
-
-	//var videoNames = ['./tmp/source/0.mp4', './tmp/source/1.mp4'];
-	var videoNames = arr;
-
-	videoNames.forEach(function(videoName){
-		mergedVideo = mergedVideo.addInput(videoName);
-	});
-
-	mergedVideo.mergeToFile('./public/output.mp4', './tmp')
-	.on('error', function(err) {
-		console.log('Error ' + err.message);
-	
-	}).on("end", function () {
-		console.log("Finished");
-  
-		//download file when finished Set disposition and send it.
-		res.download(__dirname + '/public/output.mp4', function (err) {
-		  
-			if (err) throw err;
-			//delete file from tmp
-			 fs.unlink(__dirname + fileName, function (err) {
-				if (err) throw err;
-				console.log("File deleted");
-			}); 
-		}); 
-	});
-}
- */
-
-function convert(element,queue){
-		
-	new Promise(function(resolve, reject) {
-	   let startTime = timeConversion(element.startTime);
-	   let endTime = timeConversion(element.endTime);
-	   let duration = (element.endTime-element.startTime).toFixed(2);
-	   console.log(startTime, endTime,duration);
-	   ffmpeg('tmp/HowFun.mp4')
-	   .setStartTime(startTime)
-	   .setDuration(duration)
-	   //.output('tmp/source/'+ queue + '.mp4')
-	   .on('error', function(err){
-	   console.log('conversion error: ', + err);
-	   })
-	   .on('end', function(err) {   
-		   if(!err){
-				   console.log('successfully converted');
-				   resolve("yaya");
-		   }                 
-	   }).save('tmp/source/'+ queue + '.mp4');
-	   //.run();
-   });
+function chinsesToPinyin(inputText){
+    return(pinyin(inputText,{
+		style: pinyin.STYLE_TONE2,
+	}));
 }
 
+async function convertToVedio (obj,queue){
+    let startTime = timeConversion(obj.startTime);
+    let endTime = timeConversion(obj.endTime);
+    let duration = (obj.endTime-obj.startTime).toFixed(2);
 
-async function convertAllFile(array,done){
-	return new Promise((resolve, reject) => {
-		//queue determine output sequence and file name
-		//convert pinyin to time stemp and 
-		//convert time stemp to actual vedio footage 
-		let queue = 0;
-		function convertEachFile(array){
-			return new Promise((resolve, reject) => {
-				array.forEach((element) => {
-					let time = inputPinYintoTime(element);
-					convert(time,queue);
-					queue++;
-				});
-				resolve('vedio'+ queue + 'complete');
-			})
-		};
-
-		convertEachFile(array).then();
-		
-		if (typeof done ==='function'){
-			done();
-			
-		}
-		return resolve();
-	});
-
+    return new Promise((resolve, reject) => {
+        ffmpeg('tmp/HowFun.mp4')
+            .setStartTime(startTime)
+            .setDuration(duration)
+            //.output('tmp/source/'+ queue + '.mp4')
+            .on('error', function(err){
+            console.log('conversion error: ', + err);
+            })
+            .on('end', function(err) {   
+                if(!err){
+                    console.log('successfully converted');
+                    resolve();
+                }                 
+            }).save('tmp/source/'+ queue + '.mp4');
+    });
+    
 } 
 
+async function coversionOntheWay(array){
+	//console.log(array);//[ [ 'chi1' ], [ 'bao3' ], [ 'mei2' ] ]
+	
+	//text有幾個字就有幾個for迴圈，先將拼音對照時間表，換成含有時間的promise，再把時間拿出來轉乘要切的影片。
+	for(let i =0;i< array.length;i++){
+		let timeStamp = inputPinYintoTime(array[i]); 
+		console.log(timeStamp);//Promise { { startTime: '1156.25', endTime: '1156.94' } }
+		//先將拼音對照時間表，換成含有時間的promi
+		 try{
+			const ccover2vid = await convertToVedio (timeStamp,i);
+			const logging = await console.log("DONE!!");
+		}catch(err){
+			console.log(err);
+		}; 
+	};
 
-function Error(error){
-	console.log(error);
+	const log = await console.log("ALL DONE!!!!!!!!");
+		   
+};
+
+
+async function mergeToVedio (array){
+
+    console.log("in merge video");
+    var mergedVideo = ffmpeg();
+    //var videoNames = ['./tmp/source/0.mp4', './tmp/source/1.mp4'];
+    var videoNames = array;
+	console.log(videoNames);
+    videoNames.forEach(function(videoName){
+        mergedVideo = mergedVideo.addInput(videoName);
+    });
+
+    return new Promise((resolve, reject) => {
+        mergedVideo.mergeToFile('./public/videoOutput/output.mp4', './tmp')
+		.on('error', function(err) {
+			console.log('Error ' + err.message);
+		
+		}).on("end", function (stdout, stderr) {
+            console.log("Finished");
+            resolve();
+            
+		});
+    });
+};
+
+async function mergeOntheWay(){
+    
+    try{    
+        const merge2vid = await mergeToVedio (loopFile());
+        const logging = await console.log("MERGE DONE!!");
+    }catch(err){
+        console.log(err);
+    }; 
+
+    const log = await console.log("ALL DONE!!!!!!!!");
+           
+};
+
+
+
+function deleteOntheWay(){
+	console.log("in delete video");
+	try {
+		fs.unlinkSync('./public/videoOutput/output.mp4');
+		const directory = './tmp/source/';
+		fs.readdir(directory, (err, files) => {
+			if (err) throw err;
+
+			for (const file of files) {
+				fs.unlinkSync(path.join(directory, file), err => {
+				if (err) throw err;
+				});
+			}
+			console.log("DELETE DONE!!!!!!!!")
+		});
+	  } catch (err) {
+		// handle the error
+	  }
+
 }
-
-
 
 function loopFile(){
-	let files = [];
-	const testFolder = './tmp/source/';
-	fs.readdirSync(testFolder).forEach(file => {
-	//console.log(file);
-	files.push('./tmp/source/' + file);
-	});
-	//console.log(files);
-	return files;
+	let filesArray = [];
+
+    for(let i = 0; i < fileCount; i++){
+        filesArray.push('./tmp/source/' + i + '.mp4');
+    }; 
+    //console.log(filesArray);
+	return filesArray;
 }
+
+
 
 
