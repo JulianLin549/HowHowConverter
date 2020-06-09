@@ -75,8 +75,8 @@ app.post("/convert", (req, res) => {
 		await console.log("--------------");
 		await mergeOntheWay();
 		await console.log("--------------");
-		//await deleteOntheWay();
 		await res.redirect('/HowhowCanSpeak');
+		
 	};
 
 	
@@ -84,7 +84,12 @@ app.post("/convert", (req, res) => {
 });
 
 app.get('/HowhowCanSpeak', function(req, res) {
-	res.sendFile(path.join(__dirname + '/public/vedioOutput.html'))
+	
+	main();
+	async function main(){
+		await res.sendFile(path.join(__dirname + '/public/vedioOutput.html'));
+		await deleteOntheWay();
+	}
 });
 
 app.get('/HowhowCanSpeak/video', function(req, res) {
@@ -139,12 +144,13 @@ function inputPinYintoTime (pinyin){
 			startTime = howhowParser[pinyin].startTime;
 			endTime = howhowParser[pinyin].endTime;
 			//console.log(pinyin + ": startTime: " + howhowParser[pinyin].startTime+ " endTime: "+ howhowParser[pinyin].endTime);
-            return {startTime,endTime};
+			console.log(pinyin);
+			return {startTime,endTime};
             resolve({startTime,endTime});
 		}
 		catch (e) {
 			throw Error("無法讀取\""+ pinyin + "\"");
-            //console.log("無法讀取\""+ pinyin + "\"");  
+
 		}
 }
 
@@ -244,10 +250,11 @@ async function mergeOntheWay(){
 
 
 
-function deleteOntheWay(){
+
+async function deleteOntheWay(){
 	console.log("in delete video");
 	try {
-		fs.unlinkSync('./public/videoOutput/output.mp4');
+		//fs.unlinkSync('./public/videoOutput/output.mp4');
 		const directory = './tmp/source/';
 		fs.readdir(directory, (err, files) => {
 			if (err) throw err;
